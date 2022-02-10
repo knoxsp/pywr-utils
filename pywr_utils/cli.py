@@ -34,3 +34,12 @@ def remove_orphan_parameters(model, output_dir):
     processor.remove_orphan_parameters()
 
     processor.save(output_dir=output_dir)
+
+@cli.command()
+@click.argument('model', type=click.File())
+def check_node_references(model):
+    """Check all the recorders and parameters for node references to nodes which
+    aren't in the model."""
+    processor = PywrModelProcessor(model)
+
+    processor.check_node_references()

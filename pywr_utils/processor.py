@@ -181,7 +181,8 @@ class PywrModelProcessor:
         if param.get('is_variable') is True:
             self.node_decision_var_map[self.get_name(node_name)].append(self.normalise_name(parameter_name))
 
-        paramkeys = ['parameter', 'capacity_param', 'max_flow', 'index_parameter']
+
+        paramkeys = ['parameter', 'capacity_param', 'max_flow', 'index_parameter', 'control_curve']
         for paramkey in paramkeys:
             if param.get(paramkey) and isinstance(param[paramkey], str):
                 self.parameter_node_map[self.normalise_name(param[paramkey])].append(node_name)
@@ -193,6 +194,10 @@ class PywrModelProcessor:
                     self.parameter_node_map[self.normalise_name(sub_param)].append(node_name)
                     self.get_sub_parameters(sub_param, node_name)
 
+        for k, v in param.items():
+            if k.find('parameter') >= 0 and isinstance(v, str) and v in self.model['parameters']:
+                self.parameter_node_map[self.normalise_name(v)].append(node_name)
+                self.get_sub_parameters(v, node_name)
 
     def get_parameter_node(self, parameter_name, original_parameter=None):
         """
@@ -528,7 +533,6 @@ class PywrModelProcessor:
             self.log.warning("No data dir specified. Returning.")
 
         title = self.model['metadata']['title'].replace(' ', '_')
-
         if output_dir is None:
             output_dir = self.output_dir
         #check if the output folder exists and create it if not
@@ -573,3 +577,21 @@ class PywrModelProcessor:
         for recorder_to_remove in recorders_to_remove:
             self.log.info(f"removing recorder {recorder_to_remove}")
             del(self.model['recorders'][recorder_to_remove])
+
+    def check_node_references(self):
+        """
+            Check the parameters and recorders of a model to see if all the nodes
+            they refer to are in the model
+        """
+        node_names = [n['name'] for n in self.model['nodes']]
+
+        for pname, parameter in self.model['parameters'].items():
+            for k, v in parameter.items():
+                if k.find('node') >= 0  and k.find('parameter') == -1:
+                    if v not in node_names:
+                        self.log.warning(f"Unreferenced node in parameter {pname} {k} : {v}")
+        for rname, recorder in self.model['recorders'].items():
+            for k, v in recorder.items():
+                if k.find('node') >= 0:
+                    if v not in node_names:
+                        self.log.warning(f"Unreferenced node in recorder {pname} {k} : {v}")
