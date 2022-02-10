@@ -555,10 +555,21 @@ class PywrModelProcessor:
         # self.get_all_agg_params()
         # self.make_dec_variable_aggregated_lookup()
         self.make_parameter_node_lookup()
+
+        node_names = [n['name'] for n in self.model['nodes']]
+
         params_to_remove = []
         for p in self.model['parameters']:
             if self.normalise_name(p) not in self.parameter_node_map:
                 params_to_remove.append(p)
         for param_to_remove in params_to_remove:
-            self.log.info(f"removing {param_to_remove}")
+            self.log.info(f"removing parameter {param_to_remove}")
             del(self.model['parameters'][param_to_remove])
+        recorders_to_remove = []
+        for rname, r in self.model['recorders'].items():
+            if r.get('node') is not None:
+                if r['node'] not in node_names:
+                    recorders_to_remove.append(rname)
+        for recorder_to_remove in recorders_to_remove:
+            self.log.info(f"removing recorder {recorder_to_remove}")
+            del(self.model['recorders'][recorder_to_remove])
